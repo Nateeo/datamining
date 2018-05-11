@@ -1,4 +1,9 @@
 .vscode/
+*.data*
+*.meta
+*.index
+checkpoint
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
