@@ -4,6 +4,9 @@
 *.index
 checkpoint
 
+node_modules/
+papa.csv
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
