@@ -8,9 +8,11 @@ console.log("starting");
 // npm install http-server -g
 // cd to your directory where you want to server files, then run `http-server`
 
-// file url
+// file urls, configure these accordingly
 const url = "http://127.0.0.1:8080/wrangleeo.csv";
 const outputFile = "papa.csv";
+
+// edit the below function to map rows. Once complete, run `yarn start` on this directory
 
 const complete = (results, file) => {
   // This is mapping each row (value) to a new value
