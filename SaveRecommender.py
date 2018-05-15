@@ -7,6 +7,7 @@ sys.path.append(os.getcwd())
 from openrec import ImplicitModelTrainer
 from openrec.utils import ImplicitDataset
 from openrec.recommenders import BPR
+from BPR2 import BPR2
 from openrec.recommenders import Recommender
 from openrec.utils.evaluators import AUC
 from openrec.utils.samplers import PairwiseSampler
@@ -65,9 +66,21 @@ max_item = train_dataset.max_item()
 
 big_bpr = BPR(batch_size=batch_size, max_user=max_user,
               max_item=max_item, dim_embed=20)
-Recommender.load(big_bpr, "model-2")
-
-print("model loaded")
+Recommender.load(big_bpr, "model-1")
 print(big_bpr)
-
 print(big_bpr.serve(pythonsucks))
+
+# goodnight
+tf.reset_default_graph()
+
+big_bpr2 = BPR(batch_size=batch_size, max_user=max_user,
+               max_item=max_item, dim_embed=20)
+Recommender.load(big_bpr2, "model-1")
+print(big_bpr2)
+print(big_bpr2.serve(pythonsucks))
+
+print(big_bpr)
+print(big_bpr.serve(pythonsucks))
+
+print(big_bpr2)
+print(big_bpr2.serve(pythonsucks))
