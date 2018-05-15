@@ -45,11 +45,11 @@ model_trainer = ImplicitModelTrainer(batch_size=batch_size, test_batch_size=test
                                      train_dataset=train_dataset, model=bpr_model, sampler=sampler)
 auc_evaluator = AUC()
 
-model_trainer.train(num_itr=int(20), display_itr=display_itr, eval_datasets=[val_dataset, test_dataset],
+model_trainer.train(num_itr=int(10), display_itr=display_itr, eval_datasets=[val_dataset, test_dataset],
                     evaluators=[auc_evaluator])
 
 print("Save")
-bpr_model.save("./model", 2)
+bpr_model.save("./model", 1)
 print("Saved")
 
 # big_bpr = BPR(batch_size=batch_size, max_user=max_user,

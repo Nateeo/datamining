@@ -24,8 +24,6 @@ raw_data['train_data'] = np.load('dataset/citeulike/user_data_train.npy')
 raw_data['val_data'] = np.load('dataset/citeulike/user_data_val.npy')
 raw_data['test_data'] = np.load('dataset/citeulike/user_data_test.npy')
 
-print(raw_data['test_data'])
-
 pythonsucks = dict()
 
 pythonsucks['user_id_input'] = []
