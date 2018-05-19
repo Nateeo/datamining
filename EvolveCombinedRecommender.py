@@ -4,12 +4,16 @@ from deap import base
 from deap import creator
 from deap import tools
 
-from CombinedRecommender import CombinedRecommender
 from openrec import ImplicitModelTrainer
 from openrec.utils.evaluators import ImplicitEvalManager
 from openrec.utils import ImplicitDataset, Dataset
 from openrec.utils.evaluators import AUC, Recall, MSE
 from openrec.utils.samplers import PointwiseSampler
+
+from CombinedRecommender import CombinedRecommender
+
+from ImplicitDatasetWithExplicitConversion import ImplicitDatasetWithExplicitConversion
+from PairwiseSamplerWithExplicitConversion import PairwiseSamplerWithExplicitConversion
 
 import numpy as np
 
@@ -25,9 +29,11 @@ max_item = 4251
 
 # twiddle with these things ###:
 
-MAX_GENERATIONS = 5  # how many generations to go through
+USER = 1
+
+MAX_GENERATIONS = 3  # how many generations to go through
 MAX_FITNESS = 0  # the ideal individual
-POP_SIZE = 300  # total individuals
+POP_SIZE = 50  # total individuals
 IND_SIZE = 3  # number of floats in each individual
 
 # probability of cross-over — swapping weights between indices, i.e mating :^)
@@ -43,8 +49,8 @@ raw_data['max_item'] = tc.max_item
 fileToLoad = 'move_merge_large_timebased.csv'
 csv = np.genfromtxt(fileToLoad, delimiter=",", dtype=[
                     int, int, float, float, float, int, int, int, int, str, int], names=True, encoding='utf8')
-#csv = np.genfromtxt('movies_medium.csv', delimiter=",", dtype='int,int,float,bool,float,float', names=True, encoding='ansi')
-#csv = np.genfromtxt('Movies_ratings_small_merged_reduced.csv', delimiter=",", dtype='int,int,float,float,int,int,str,str,float,int,int,str,bool', names=True, encoding='ansi')
+# csv = np.genfromtxt('movies_medium.csv', delimiter=",", dtype='int,int,float,bool,float,float', names=True, encoding='ansi')
+# csv = np.genfromtxt('Movies_ratings_small_merged_reduced.csv', delimiter=",", dtype='int,int,float,float,int,int,str,str,float,int,int,str,bool', names=True, encoding='ansi')
 
 # Permute all the data, then subsection it off - using temp AND THEN numpy
 np.random.shuffle(csv)
@@ -75,37 +81,47 @@ raw_data['train_data'] = np.array(trainTemp)
 raw_data['val_data'] = np.array(valTemp)
 raw_data['test_data'] = np.array(testTemp)
 
-combined_recommender = CombinedRecommender(
-    batch_size=tc.batch_size, max_user=tc.max_user, max_item=tc.max_item)
+test1Temp = []
+for entry in testTemp:
+    if entry['user_id'] == USER:
+        test1Temp.append(entry)
 
-csv = np.genfromtxt('Movies_ratings_small_merged_reduced.csv', delimiter=",",
-                    dtype='int,int,float,float,int,int,str,str,float,int,int,str,bool', names=True, encoding='utf8')
+raw_data['test_1_data'] = np.array(test1Temp)
 
-train_dataset = ImplicitDataset(
-    raw_data['train_data'], raw_data['max_user'], raw_data['max_item'], name='Train')
+test_dataset = ImplicitDatasetWithExplicitConversion(
+    raw_data['test_1_data'], 1, raw_data['max_item'], name='Test')
 
-sampler = PointwiseSampler(
-    dataset=train_dataset, batch_size=tc.batch_size, pos_ratio=0.2, num_process=5)
-
-val_dataset = ImplicitDataset(
-    raw_data['val_data'], raw_data['max_user'], raw_data['max_item'], name='Val')
+# maybe consider multiple eval datasets
+# eval_dataset =
 
 # add evaluators
 evaluators = [AUC()]
+sampler = PairwiseSamplerWithExplicitConversion(
+    dataset=test_dataset, batch_size=tc.batch_size, num_process=3)
 
+combined_recommender = CombinedRecommender(
+    batch_size=tc.batch_size, max_user=tc.max_user, max_item=tc.max_item)
+
+# need correct train_dataset (to exclude positives) and batch sizes for evaluation
 model_trainer = ImplicitModelTrainer(batch_size=tc.batch_size, test_batch_size=tc.test_batch_size,
-                                     train_dataset=train_dataset, model=combined_recommender, sampler=sampler)
+                                     train_dataset=test_dataset, model=combined_recommender, sampler=sampler)
+
 model_trainer._eval_manager = ImplicitEvalManager(evaluators=evaluators)
-model_trainer._exclude_positives([val_dataset])
+model_trainer._exclude_positives([test_dataset])
+
 #================================GENETIC ALGORITHM======================================#
 
 # EVALUATION FUNCTION - change to min
 
 
 def evalOneMin(individual):
-    # print('evaluation')
-    # print(model_trainer._evaluate_full(val_dataset))
-    return sum(individual),
+    # calling _evaluate_full manually w/o sampler should be single process so ok to set then evaluate
+    print('evaluation')
+    combined_recommender.set_ensemble(individual)
+    eval_metrics = model_trainer._evaluate_full(test_dataset)
+    print('AUC is: ', end='')
+    print(eval_metrics['AUC'])
+    return eval_metrics['AUC']
 
 
 def random_single_point_float():
@@ -135,7 +151,8 @@ toolbox.register("evaluate", evalOneMin)
 toolbox.register("mate", tools.cxTwoPoint)  # two-point crossover
 
 # p = 0.05 of shuffling mutation
-toolbox.register("mutate", tools.mutShuffleIndexes, indpb=MUTATION_PROBABILITY)
+toolbox.register("mutate", tools.mutShuffleIndexes,
+                 indpb=MUTATION_PROBABILITY)
 toolbox.register("select", tools.selTournament, tournsize=3)
 
 

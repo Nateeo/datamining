@@ -2,6 +2,7 @@ from openrec.recommenders import Recommender
 from openrec.recommenders import BPR
 
 import tensorflow as tf
+import numpy as np
 
 
 # hard-coded to handle 3 recommenders (see _build_serving_graph & serve_with_ensemble)
@@ -87,18 +88,20 @@ class CombinedRecommender(Recommender):
         print('calling _build_training_graph')
         pass
 
-    def serve(self, batch_data):
-        print('calling serve')
-        return self._rec1.serve(batch_data)
+    def set_ensemble(self, ensemble):
+        print('SETTING ENSEMBLE: ', end='')
+        print(ensemble)
+        self._ensemble = ensemble
 
+    def serve(self, batch_data):
+        print('SERVING WITH ENSEMBLE: ', end='')
+        return self.serve_with_ensemble(batch_data, self._ensemble)
+
+    # alternative to set_ensemble then serve
     # ensemble should be a size 3 list [weight_a, weight_b, weight_c]
     def serve_with_ensemble(self, batch_data, ensemble):
-        print('calling serve_with_ensemble')
-        print('getting first scores')
         scores_1 = self._rec1.serve(batch_data)
-        print('getting second scores')
         scores_2 = self._rec2.serve(batch_data)
-        print('getting third scores')
         scores_3 = self._rec3.serve(batch_data)
 
         weighted_scores = []
@@ -109,11 +112,11 @@ class CombinedRecommender(Recommender):
             weighted_user_scores = []
             # only iterate over index because we have to get each models served score by index anyway
             for item_index, _ in enumerate(user_scores):
-                total_item_score = scores_1[user_index][item_index] + \
-                    scores_2[user_index][item_index] + \
-                    scores_3[user_index][item_index]
-
-                weighted_user_scores.append(total_item_score / 3)
+                total_item_score = ensemble[0] * scores_1[user_index][item_index] + \
+                    ensemble[1] * scores_2[user_index][item_index] + \
+                    ensemble[2] * scores_3[user_index][item_index]
+                average = total_item_score / 3
+                weighted_user_scores.append(total_item_score)
 
             weighted_scores.append(weighted_user_scores)
 
