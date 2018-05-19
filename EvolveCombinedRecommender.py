@@ -15,12 +15,10 @@ import numpy as np
 
 # recommender settings
 
-batch_size = 10
-test_batch_size = 10
-display_itr = 10
+import training_config as tc
 
-max_user = 5551
-max_item = 16980
+max_user = 10657
+max_item = 4251
 
 # max_user = 5551
 # max_item = 16980
@@ -40,17 +38,45 @@ MUTATION_PROBABILITY = 0.05
 
 # RECOMMENDER STUFF
 raw_data = dict()
+raw_data['max_user'] = tc.max_user
+raw_data['max_item'] = tc.max_item
+fileToLoad = 'move_merge_large_timebased.csv'
+csv = np.genfromtxt(fileToLoad, delimiter=",", dtype=[
+                    int, int, float, float, float, int, int, int, int, str, int], names=True, encoding='utf8')
+#csv = np.genfromtxt('movies_medium.csv', delimiter=",", dtype='int,int,float,bool,float,float', names=True, encoding='ansi')
+#csv = np.genfromtxt('Movies_ratings_small_merged_reduced.csv', delimiter=",", dtype='int,int,float,float,int,int,str,str,float,int,int,str,bool', names=True, encoding='ansi')
+
+# Permute all the data, then subsection it off - using temp AND THEN numpy
+np.random.shuffle(csv)
+permuter = dict()
+valTemp = []
+testTemp = []
+trainTemp = []
+for sample_itr, entry in enumerate(csv):
+    if(entry['rating'] >= 3):
+        if(entry['user_id'] not in permuter):
+            permuter[entry['user_id']] = 0
+        index = permuter[entry['user_id']]
+        if index == 0:
+            trainTemp.append(entry)
+            permuter[entry['user_id']] = 1
+        elif index == 1:
+            trainTemp.append(entry)
+            permuter[entry['user_id']] = 2
+        elif index == 2:
+            valTemp.append(entry)
+            permuter[entry['user_id']] = 3
+        else:
+            testTemp.append(entry)
+            permuter[entry['user_id']] = 0
 
 
-raw_data['max_user'] = max_user
-raw_data['max_item'] = max_item
-
-raw_data['train_data'] = np.load('dataset/citeulike/user_data_train.npy')
-raw_data['val_data'] = np.load('dataset/citeulike/user_data_val.npy')
-raw_data['test_data'] = np.load('dataset/citeulike/user_data_test.npy')
+raw_data['train_data'] = np.array(trainTemp)
+raw_data['val_data'] = np.array(valTemp)
+raw_data['test_data'] = np.array(testTemp)
 
 combined_recommender = CombinedRecommender(
-    batch_size=batch_size, max_user=max_user, max_item=max_item)
+    batch_size=tc.batch_size, max_user=tc.max_user, max_item=tc.max_item)
 
 csv = np.genfromtxt('Movies_ratings_small_merged_reduced.csv', delimiter=",",
                     dtype='int,int,float,float,int,int,str,str,float,int,int,str,bool', names=True, encoding='utf8')
@@ -59,7 +85,7 @@ train_dataset = ImplicitDataset(
     raw_data['train_data'], raw_data['max_user'], raw_data['max_item'], name='Train')
 
 sampler = PointwiseSampler(
-    dataset=train_dataset, batch_size=batch_size, pos_ratio=0.2, num_process=5)
+    dataset=train_dataset, batch_size=tc.batch_size, pos_ratio=0.2, num_process=5)
 
 val_dataset = ImplicitDataset(
     raw_data['val_data'], raw_data['max_user'], raw_data['max_item'], name='Val')
@@ -67,7 +93,7 @@ val_dataset = ImplicitDataset(
 # add evaluators
 evaluators = [AUC()]
 
-model_trainer = ImplicitModelTrainer(batch_size=batch_size, test_batch_size=test_batch_size,
+model_trainer = ImplicitModelTrainer(batch_size=tc.batch_size, test_batch_size=tc.test_batch_size,
                                      train_dataset=train_dataset, model=combined_recommender, sampler=sampler)
 model_trainer._eval_manager = ImplicitEvalManager(evaluators=evaluators)
 model_trainer._exclude_positives([val_dataset])
@@ -77,9 +103,9 @@ model_trainer._exclude_positives([val_dataset])
 
 
 def evalOneMin(individual):
-    print('evaluation')
-    print(model_trainer._evaluate_full(val_dataset))
-    return sum(individual) * random.random(),
+    # print('evaluation')
+    # print(model_trainer._evaluate_full(val_dataset))
+    return sum(individual),
 
 
 def random_single_point_float():
@@ -88,7 +114,8 @@ def random_single_point_float():
 # ignore 'No Attribute' errors, creator adds them as static members during runtime
 
 
-creator.create("FitnessMin", base.Fitness, weights=(1.0,))
+# target is minimising fitness function output
+creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
 creator.create("Individual", list, fitness=creator.FitnessMin)
 
 toolbox = base.Toolbox()
