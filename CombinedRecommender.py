@@ -4,6 +4,8 @@ from openrec.recommenders import BPR
 import tensorflow as tf
 
 
+# hard-coded to handle 3 recommenders (see _build_serving_graph & serve_with_ensemble)
+
 class CombinedRecommender(Recommender):
     def _build_user_inputs(self, train=True):
         print('calling _build_user_inputs')
@@ -68,13 +70,13 @@ class CombinedRecommender(Recommender):
 
         big_bpr2 = BPR(batch_size=self._batch_size, max_user=self._max_user,
                        max_item=self._max_item, dim_embed=20)
-        Recommender.load(big_bpr2, "model-1")
+        Recommender.load(big_bpr2, "model-2")
 
         tf.reset_default_graph()
 
         big_bpr3 = BPR(batch_size=self._batch_size, max_user=self._max_user,
                        max_item=self._max_item, dim_embed=20)
-        Recommender.load(big_bpr2, "model-1")
+        Recommender.load(big_bpr2, "model-3")
 
         self._rec1 = big_bpr
         self._rec2 = big_bpr2
@@ -89,7 +91,36 @@ class CombinedRecommender(Recommender):
         print('calling serve')
         return self._rec1.serve(batch_data)
 
-    # default train method, need to override with ensemble loss calculation
+    # ensemble should be a size 3 list [weight_a, weight_b, weight_c]
+    def serve_with_ensemble(self, batch_data, ensemble):
+        print('calling serve_with_ensemble')
+        print('getting first scores')
+        scores_1 = self._rec1.serve(batch_data)
+        print('getting second scores')
+        scores_2 = self._rec2.serve(batch_data)
+        print('getting third scores')
+        scores_3 = self._rec3.serve(batch_data)
+
+        weighted_scores = []
+
+        # create weighted averages
+        #
+        for user_index, user_scores in enumerate(scores_1):
+            weighted_user_scores = []
+            # only iterate over index because we have to get each models served score by index anyway
+            for item_index, _ in enumerate(user_scores):
+                total_item_score = scores_1[user_index][item_index] + \
+                    scores_2[user_index][item_index] + \
+                    scores_3[user_index][item_index]
+
+                weighted_user_scores.append(total_item_score / 3)
+
+            weighted_scores.append(weighted_user_scores)
+
+        return np.array(weighted_scores)
+
+    # default train method
+
     def train(self, batch_data):
         """Train the model with an input batch_data.
 
