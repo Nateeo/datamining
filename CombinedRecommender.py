@@ -70,8 +70,13 @@ class CombinedRecommender(Recommender):
                        max_item=self._max_item, dim_embed=20)
         Recommender.load(big_bpr2, "model-1")
 
+        big_bpr3 = BPR(batch_size=self._batch_size, max_user=self._max_user,
+                       max_item=self._max_item, dim_embed=20)
+        Recommender.load(big_bpr2, "model-1")
+
         self._rec1 = big_bpr
         self._rec2 = big_bpr2
+        self._rec3 = big_bpr3
         pass
 
     def _build_training_graph(self):
