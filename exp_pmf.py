@@ -1,5 +1,6 @@
 import os
 import sys
+import datetime
 
 import numpy as np
 from openrec import ImplicitModelTrainer, ItrMLPModelTrainer
@@ -19,7 +20,8 @@ if __name__ == "__main__":
     raw_data = dict()
     raw_data['max_user'] = 10657
     raw_data['max_item'] = 4251
-    csv = np.genfromtxt('move_merge_large_timebased.csv', delimiter=",", dtype=[int,int,float,float,float,int,int,int,int,str,int], names=True, encoding='utf8')
+    fileToLoad = 'move_merge_large_timebased.csv'
+    csv = np.genfromtxt(fileToLoad, delimiter=",", dtype=[int,int,float,float,float,int,int,int,int,str,int], names=True, encoding='utf8')
     #csv = np.genfromtxt('movies_medium.csv', delimiter=",", dtype='int,int,float,bool,float,float', names=True, encoding='ansi')
     #csv = np.genfromtxt('Movies_ratings_small_merged_reduced.csv', delimiter=",", dtype='int,int,float,float,int,int,str,str,float,int,int,str,bool', names=True, encoding='ansi')
     
@@ -78,6 +80,8 @@ if __name__ == "__main__":
     precision_evaluator = Precision(precision_at=[10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
     ndcg_evaluator = NDCG(ndcg_at=[10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
 
+    print(((str(datetime.datetime.now())).split('.')[0]).split(' ')[1] + ' ' + ((str(datetime.datetime.now())).split('.')[0]).split(' ')[0])
+    print(fileToLoad)
     model_trainer.train(num_itr=int(30000), display_itr=display_itr, eval_datasets=[val_dataset],
                         evaluators=[auc_evaluator, recall_evaluator, precision_evaluator, ndcg_evaluator])
 
