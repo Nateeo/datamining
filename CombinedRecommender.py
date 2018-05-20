@@ -95,6 +95,7 @@ class CombinedRecommender(Recommender):
 
     def serve(self, batch_data):
         print('SERVING WITH ENSEMBLE: ', end='')
+        print(self._ensemble)
         return self.serve_with_ensemble(batch_data, self._ensemble)
 
     # alternative to set_ensemble then serve
@@ -104,22 +105,36 @@ class CombinedRecommender(Recommender):
         scores_2 = self._rec2.serve(batch_data)
         scores_3 = self._rec3.serve(batch_data)
 
+        print('ensemble')
+        print(ensemble[0])
+        print(ensemble[1])
+        print(ensemble[2])
+        total_weighting = ensemble[0] + ensemble[1] + ensemble[2]
+        print('total_weighting')
+        print(total_weighting)
+        multiplier = 1 / total_weighting
+        print('multiplier')
+        print(multiplier)
+        first_weight = ensemble[0] * multiplier
+        second_weight = ensemble[1] * multiplier
+        third_weight = ensemble[2] * multiplier
+        print('weights')
+        print(first_weight)
+        print(second_weight)
+        print(third_weight)
         weighted_scores = []
-
         # create weighted averages
         #
         for user_index, user_scores in enumerate(scores_1):
             weighted_user_scores = []
             # only iterate over index because we have to get each models served score by index anyway
             for item_index, _ in enumerate(user_scores):
-                total_item_score = ensemble[0] * scores_1[user_index][item_index] + \
-                    ensemble[1] * scores_2[user_index][item_index] + \
-                    ensemble[2] * scores_3[user_index][item_index]
-                average = total_item_score / 3
+                total_item_score = first_weight * scores_1[user_index][item_index] + \
+                    second_weight * scores_2[user_index][item_index] + \
+                    third_weight * scores_3[user_index][item_index]
                 weighted_user_scores.append(total_item_score)
 
             weighted_scores.append(weighted_user_scores)
-
         return np.array(weighted_scores)
 
     # default train method
