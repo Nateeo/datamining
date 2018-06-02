@@ -64,20 +64,20 @@ class CombinedRecommender(Recommender):
     def _build_serving_graph(self):
         big_bpr = BPR(batch_size=self._batch_size, max_user=self._max_user,
                       max_item=self._max_item, dim_embed=20)
-        Recommender.load(big_bpr, "model-1")
+        Recommender.load(big_bpr, "model-21")
         print('calling _build_serving_graph')
 
         tf.reset_default_graph()
 
         big_bpr2 = BPR(batch_size=self._batch_size, max_user=self._max_user,
                        max_item=self._max_item, dim_embed=20)
-        Recommender.load(big_bpr2, "model-2")
+        Recommender.load(big_bpr2, "model-22")
 
         tf.reset_default_graph()
 
         big_bpr3 = BPR(batch_size=self._batch_size, max_user=self._max_user,
                        max_item=self._max_item, dim_embed=20)
-        Recommender.load(big_bpr2, "model-3")
+        Recommender.load(big_bpr2, "model-23")
 
         self._rec1 = big_bpr
         self._rec2 = big_bpr2
@@ -94,8 +94,8 @@ class CombinedRecommender(Recommender):
         self._ensemble = ensemble
 
     def serve(self, batch_data):
-        print('SERVING WITH ENSEMBLE: ', end='')
-        print(self._ensemble)
+        print('combined batch_data')
+        print(batch_data)
         return self.serve_with_ensemble(batch_data, self._ensemble)
 
     # alternative to set_ensemble then serve
@@ -104,11 +104,6 @@ class CombinedRecommender(Recommender):
         scores_1 = self._rec1.serve(batch_data)
         scores_2 = self._rec2.serve(batch_data)
         scores_3 = self._rec3.serve(batch_data)
-
-        print('ensemble')
-        print(ensemble[0])
-        print(ensemble[1])
-        print(ensemble[2])
         total_weighting = ensemble[0] + ensemble[1] + ensemble[2]
         print('total_weighting')
         print(total_weighting)
