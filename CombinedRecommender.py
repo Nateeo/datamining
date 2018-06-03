@@ -64,20 +64,20 @@ class CombinedRecommender(Recommender):
     def _build_serving_graph(self):
         big_bpr = BPR(batch_size=self._batch_size, max_user=self._max_user,
                       max_item=self._max_item, dim_embed=20)
-        Recommender.load(big_bpr, "model-21")
+        Recommender.load(big_bpr, "model-51")
         print('calling _build_serving_graph')
 
         tf.reset_default_graph()
 
         big_bpr2 = BPR(batch_size=self._batch_size, max_user=self._max_user,
                        max_item=self._max_item, dim_embed=20)
-        Recommender.load(big_bpr2, "model-22")
+        Recommender.load(big_bpr2, "model-52")
 
         tf.reset_default_graph()
 
         big_bpr3 = BPR(batch_size=self._batch_size, max_user=self._max_user,
                        max_item=self._max_item, dim_embed=20)
-        Recommender.load(big_bpr2, "model-23")
+        Recommender.load(big_bpr2, "model-53")
 
         self._rec1 = big_bpr
         self._rec2 = big_bpr2
